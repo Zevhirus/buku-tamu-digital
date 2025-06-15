@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Buku Tamu</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        .auth-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        input, button, select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #001f3f;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #001f3f;
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            table {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="auth-section" id="loginSection">
+            <h1>Login Admin</h1>
+            <input type="password" id="adminPass" placeholder="Password">
+            <button onclick="login()">Login</button>
+        </div>
+
+        <div id="adminPanel" style="display:none;">
+            <h1>Data Buku Tamu</h1>
+            
+            <div class="controls">
+                <input type="text" id="searchInput" placeholder="Cari nama/instansi...">
+                <input type="date" id="dateFilter">
+                <select id="purposeFilter">
+                    <option value="">Semua Tujuan</option>
+                    <option value="Meeting">Meeting</option>
+                    <option value="Kunjungan Pribadi">Kunjungan Pribadi</option>
+                    <option value="Undangan">Undangan</option>
+                    <option value="Lainnya">Lainnya</option>
+                </select>
+                <button onclick="filterData()">Filter</button>
+                <button onclick="exportToExcel()">Export Excel</button>
+                <button onclick="printData()">Cetak</button>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Tanggal</th>
+                            <th>Nama</th>
+                            <th>Instansi</th>
+                            <th>No. HP</th>
+                            <th>Tujuan</th>
+                            <th>Waktu</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Login System
+        function login() {
+            const password = document.getElementById('adminPass').value;
+            if (password === "Admin@123") { // Ganti dengan password kuat
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                loadData();
+            } else {
+                alert("Password salah!");
+            }
+        }
+
+        // Load Data
+        function loadData() {
+            const data = JSON.parse(localStorage.getItem('guestData')) || [];
+            renderTable(data);
+        }
+
+        // Filter Data
+        function filterData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const dateFilter = document.getElementById('dateFilter').value;
+            const purposeFilter = document.getElementById('purposeFilter').value;
+            
+            const data = JSON.parse(localStorage.getItem('guestData')) || [];
+            
+            const filtered = data.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchTerm) || 
+                                     item.institution.toLowerCase().includes(searchTerm);
+                const matchesDate = dateFilter ? item.date === dateFilter : true;
+                const matchesPurpose = purposeFilter ? item.purpose === purposeFilter : true;
+                
+                return matchesSearch && matchesDate && matchesPurpose;
+            });
+            
+            renderTable(filtered);
+        }
+
+        // Render Table
+        function renderTable(data) {
+            const tbody = document.querySelector('#dataTable tbody');
+            tbody.innerHTML = '';
+            
+            data.forEach((item, index) => {
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.date}</td>
+                        <td>${item.name}</td>
+                        <td>${item.institution}</td>
+                        <td>${item.phone}</td>
+                        <td>${item.purpose}</td>
+                        <td>${item.timestamp}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // Export Excel
+        function exportToExcel() {
+            const data = JSON.parse(localStorage.getItem('guestData')) || [];
+            let csv = 'No,Tanggal,Nama,Instansi,No HP,Tujuan,Waktu\n';
+            
+            data.forEach((item, index) => {
+                csv += `${index + 1},${item.date},"${item.name}","${item.institution}","${item.phone}","${item.purpose}","${item.timestamp}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'data_tamu_' + new Date().toISOString().slice(0,10) + '.csv';
+            link.click();
+        }
+
+        // Print
+        function printData() {
+            window.print();
+        }
+
+        // Initialize
+        document.getElementById('dateFilter').valueAsDate = new Date();
+    </script>
+</body>
+</html>
